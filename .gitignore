@@ -1,0 +1,34 @@
+# === BACKEND (Laravel) ===
+Backend/vendor/
+Backend/node_modules/
+Backend/public/storage
+Backend/storage/*.key
+Backend/storage/logs/*
+Backend/storage/framework/cache/*
+Backend/storage/framework/sessions/*
+Backend/storage/framework/views/*
+Backend/.env
+Backend/.env.backup
+Backend/.phpunit.result.cache
+Backend/Homestead.json
+Backend/Homestead.yaml
+
+# === FRONTEND (Flutter) ===
+App/.dart_tool/
+App/.packages
+App/.pub-cache/
+App/.pub/
+App/build/
+App/.flutter-plugins
+App/.flutter-plugins-dependencies
+App/.idea/
+App/.vscode/
+App/android/.gradle/
+App/android/build/
+App/ios/Pods/
+App/ios/Podfile.lock
+
+# === GERAL ===
+.DS_Store
+Thumbs.db
+*.log
