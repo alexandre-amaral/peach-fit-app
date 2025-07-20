@@ -1,0 +1,2 @@
+/Users/alexandre/Downloads/Peach + Avalia360/Peach/App/build/.cxx/Debug/3n2b3559/x86/CMakeFiles/edit_cache.dir
+/Users/alexandre/Downloads/Peach + Avalia360/Peach/App/build/.cxx/Debug/3n2b3559/x86/CMakeFiles/rebuild_cache.dir
