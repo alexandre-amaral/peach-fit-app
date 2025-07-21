@@ -18,10 +18,11 @@ class CustomerRequest extends FormRequest
    public function rules(): array
     {
         $rules = [
-            'name'   => 'required|string|max:255',
-            'state'  => 'required|numeric',
-            'city'   => 'required|numeric',
-            'avatar' => 'nullable',
+            'name'     => 'required|string|max:255',
+            'state'    => 'required|numeric',
+            'city'     => 'required|numeric',
+            'avatar'   => 'nullable',
+            'password' => 'required|string|min:6', // ✅ Validação de senha
         ];
 
         if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
@@ -46,6 +47,9 @@ class CustomerRequest extends FormRequest
                 'string',
                 Rule::unique('customers', 'tel')->ignore($id, 'id')
             ];
+            
+            // ✅ Senha opcional na atualização
+            $rules['password'] = 'nullable|string|min:6';
             
         } else {
             $rules['email'] = 'required|email|unique:users,email';

@@ -25,6 +25,7 @@ class PersonalTrainerRequest extends FormRequest
             'speciality'   => 'required|string|max:255',
             'gender'       => 'required|in:male,female,other',
             'rate'         => 'required|numeric|min:0',
+            'password'     => 'required|string|min:6', // ✅ Validação de senha
         ];
 
         if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
@@ -46,6 +47,10 @@ class PersonalTrainerRequest extends FormRequest
                 'size:11',
                 Rule::unique('personal_trainers', 'cpf')->ignore($id, 'id')
             ];
+            
+            // ✅ Senha opcional na atualização
+            $rules['password'] = 'nullable|string|min:6';
+            
         } else {
             $rules['email'] = 'required|email|unique:users,email';
             $rules['cpf']   = 'required|string|size:11|unique:personal_trainers,cpf';

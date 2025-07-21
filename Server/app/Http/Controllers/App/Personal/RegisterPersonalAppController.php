@@ -27,30 +27,30 @@ class RegisterPersonalAppController extends Controller
         try {
             DB::beginTransaction();
 
-            $personal = (new RegisterPersonalTrainerService())->register($request);
+            // ✅ Usar método específico para API
+            $response = (new RegisterPersonalTrainerService())->registerForApi($request);
 
              if ($base64 = $request->input('avatar')) {
                 // Converte base64 para UploadedFile
                  $avatarFile = (new ConvertFileService())->convertBase64ToFile($base64);
 
                 new SaveAvatarUserService(
-                    userid: $personal->user_id,
+                    userid: $response['data']['id'], // ✅ Usar ID do response
                     file: $avatarFile
                 );
             }
             DB::commit();
 
-            return response()->json([
-                'message' => 'Personal Trainer cadastrado com sucesso!',
-                'personal' => $personal
-            ], 201);
+            // ✅ Retornar resposta no formato esperado
+            return response()->json($response, 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::emergency('Falha ao cadastrar Personal Trainer: Linha: ' . $e->getLine() . ' Arquivo:' . $e->getFile() . ' Mensagem: ' . $e->getMessage());
 
             return response()->json([
-                'error' => 'Falha ao cadastrar Personal Trainer',
+                'status' => false,
+                'message' => 'Falha ao cadastrar Personal Trainer',
                 'details' => $e->getMessage()
             ], 500);
         }

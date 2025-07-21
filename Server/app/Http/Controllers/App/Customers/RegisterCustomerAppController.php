@@ -25,30 +25,30 @@ class RegisterCustomerAppController extends Controller
         try {
             DB::beginTransaction();
 
-            $customer = (new RegisterCustomerService())->register($request);
+            // ✅ Usar método específico para API
+            $response = (new RegisterCustomerService())->registerForApi($request);
 
             if ($base64 = $request->input('avatar')) {
                 // Converte base64 para UploadedFile
                  $avatarFile = (new ConvertFileService())->convertBase64ToFile($base64);
 
                 new SaveAvatarUserService(
-                    userid: $customer->user_id,
+                    userid: $response['data']['id'], // ✅ Usar ID do response
                     file: $avatarFile
                 );
             }
             DB::commit();
 
-            return response()->json([
-                'message' => 'Cliente cadastrado com sucesso!',
-                'customer' => $customer
-            ], 201);
+            // ✅ Retornar resposta no formato esperado
+            return response()->json($response, 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::emergency('Falha ao cadastrar cliente: Linha: ' . $e->getLine() . ' Arquivo:' . $e->getFile() . ' Mensagem: ' . $e->getMessage());
 
             return response()->json([
-                'error' => 'Falha ao cadastrar cliente',
+                'status' => false,
+                'message' => 'Falha ao cadastrar cliente',
                 'details' => $e->getMessage()
             ], 500);
         }
