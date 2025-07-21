@@ -10,7 +10,9 @@ import 'package:peach_fit_app/pages/client/settings/client_edit_account_screen.d
 import 'package:peach_fit_app/pages/general/login_screen.dart';
 import 'package:peach_fit_app/pages/general/register_screen.dart';
 import 'package:peach_fit_app/pages/general/twofa_screen.dart';
+import 'package:peach_fit_app/pages/trainer/home_trainer_screen.dart';
 import 'package:peach_fit_app/util/app_routes.dart';
+import 'package:peach_fit_app/services/auth_service.dart';
 
 void main() {
   runApp(const PeachApp());
@@ -19,7 +21,6 @@ void main() {
 class PeachApp extends StatelessWidget {
   const PeachApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -37,6 +38,9 @@ class PeachApp extends StatelessWidget {
         AppRoutes.register: (context) => const RegisterScreen(),
         AppRoutes.twofa: (context) => TwofaScreen(),
 
+        //Rotas de Personal Trainer
+        AppRoutes.homeTrainer: (context) => const HomeTrainerScreen(),
+
         //Rotas de cliente
         AppRoutes.homeClient: (context) => ClientDashboardScreen(),
         AppRoutes.onboardClient: (context) => const ClientOnboardScreen(),
@@ -48,6 +52,130 @@ class PeachApp extends StatelessWidget {
         AppRoutes.settings: (context) => const ClientSettingsScreen(),
         AppRoutes.editAccount: (context) => ClientEditAccountScreen(),
       },
+      home: const SplashScreen(),
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    try {
+      // Simular carregamento por pelo menos 2 segundos
+      await Future.delayed(const Duration(seconds: 2));
+      
+      // Tentar auto-login
+      final user = await _authService.autoLogin();
+      
+      if (mounted) {
+        if (user != null) {
+          // NAVEGAÇÃO CONDICIONAL POR TIPO DE USUÁRIO
+          if (user.isPersonalTrainer) {
+            Navigator.of(context).pushReplacementNamed(AppRoutes.homeTrainer);
+          } else if (user.isCustomer) {
+            Navigator.of(context).pushReplacementNamed(AppRoutes.homeClient);
+          } else {
+            // Tipo desconhecido, ir para login
+            Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+          }
+        } else {
+          // Não logado, ir para login
+          Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+        }
+      }
+    } catch (e) {
+      // Erro no auto-login, ir para tela de login
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Logo ou ícone do app
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.fitness_center,
+                size: 60,
+                color: Color(0xFFFF5E63),
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Nome do app
+            const Text(
+              'Peach Fit',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            
+            const SizedBox(height: 8),
+            
+            const Text(
+              'Personal Trainer Delivery',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white70,
+              ),
+            ),
+            
+            const SizedBox(height: 48),
+            
+            // Loading indicator
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            const Text(
+              'Carregando...',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
