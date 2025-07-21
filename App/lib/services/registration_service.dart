@@ -15,6 +15,8 @@ class RegistrationService {
     required String password,
     required String cpf,
     required String phone,
+    required int state,    // ✅ Agora obrigatório
+    required int city,     // ✅ Agora obrigatório
     String? gender,
     String? birthDate,
     double? height,
@@ -23,9 +25,13 @@ class RegistrationService {
     String? fitnessLevel,
   }) async {
     try {
+      // ✅ Limpar formatação do CPF (manter só números)
+      final cleanCpf = cpf.replaceAll(RegExp(r'[^0-9]'), '');
+      final cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+      
       print('🔵 RegistrationService: Iniciando registro de cliente...');
       print('🔵 URL: ${ApiEndpoints.registerCustomer}');
-      print('🔵 Dados: name=$name, email=$email, cpf=$cpf, phone=$phone');
+      print('🔵 Dados: name=$name, email=$email, cpf=$cleanCpf, phone=$cleanPhone, state=$state, city=$city');
       
       final response = await _httpService.post(
         ApiEndpoints.registerCustomer,
@@ -33,8 +39,10 @@ class RegistrationService {
           'name': name,
           'email': email,
           'password': password,
-          'cpf': cpf,
-          'phone': phone,
+          'cpf': cleanCpf,  // ✅ CPF limpo
+          'tel': cleanPhone,  // ✅ Telefone limpo
+          'state': state,    // ✅ Valor do formulário
+          'city': city,      // ✅ Valor do formulário
           if (gender != null) 'gender': gender,
           if (birthDate != null) 'birth_date': birthDate,
           if (height != null) 'height': height,
@@ -82,59 +90,74 @@ class RegistrationService {
     required String password,
     required String cpf,
     required String phone,
-    String? gender,
+    required String specialties, // ✅ Agora obrigatório
+    required String gender,      // ✅ Agora obrigatório
+    required double hourlyRate,  // ✅ Agora obrigatório
     String? birthDate,
     double? height,
     double? weight,
     String? cref,
-    String? specialties,
     String? experience,
-    double? hourlyRate,
     String? serviceArea,
     String? bio,
   }) async {
     try {
+      // ✅ Limpar formatação do CPF (manter só números)
+      final cleanCpf = cpf.replaceAll(RegExp(r'[^0-9]'), '');
+      final cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+      
+      print('🔵 RegistrationService: Iniciando registro de Personal Trainer...');
+      print('🔵 URL: ${ApiEndpoints.registerPersonal}');
+      print('🔵 Dados: name=$name, email=$email, cpf=$cleanCpf, phone=$cleanPhone, specialty=$specialties, gender=$gender, rate=$hourlyRate');
+      
       final response = await _httpService.post(
         ApiEndpoints.registerPersonal,
         body: {
           'name': name,
           'email': email,
           'password': password,
-          'cpf': cpf,
-          'phone': phone,
-          if (gender != null) 'gender': gender,
+          'cpf': cleanCpf,  // ✅ CPF limpo (11 dígitos)
+          'tel': cleanPhone,  // ✅ Telefone limpo
+          'speciality': specialties,  // ✅ Valor do formulário
+          'gender': gender,           // ✅ Valor do formulário
+          'rate': hourlyRate,         // ✅ Valor do formulário
           if (birthDate != null) 'birth_date': birthDate,
           if (height != null) 'height': height,
           if (weight != null) 'weight': weight,
           if (cref != null) 'cref': cref,
-          if (specialties != null) 'specialties': specialties,
           if (experience != null) 'experience': experience,
-          if (hourlyRate != null) 'hourly_rate': hourlyRate,
           if (serviceArea != null) 'service_area': serviceArea,
           if (bio != null) 'bio': bio,
         },
         requiresAuth: false,
       );
 
+      print('🔵 RegistrationService: Resposta da API: $response');
+
       if (response['status'] == true && response['data'] != null) {
+        print('✅ RegistrationService: Sucesso! Criando UserModel...');
         final user = UserModel.fromJson(response['data']);
         
         // Save token if present
         if (user.token != null) {
+          print('🔵 RegistrationService: Salvando token...');
           await _httpService.saveToken(user.token!);
         }
         
         // Save user data
+        print('🔵 RegistrationService: Salvando dados do usuário...');
         await user.persistUserData();
         
         return user;
       } else {
+        print('❌ RegistrationService: Resposta de erro da API');
         throw HttpException(
           message: response['message'] ?? 'Erro no cadastro',
           statusCode: 400,
         );
       }
     } catch (e) {
+      print('❌ RegistrationService: Exception capturada: $e');
       throw e;
     }
   }

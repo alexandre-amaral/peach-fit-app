@@ -309,10 +309,40 @@ class ClientDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    UserModel user = GetUserController().getUser();
-
-    return Scaffold(
-      key: scaffoldKey,
+    return FutureBuilder<UserModel?>(
+      future: GetUserController().getUser(),
+      builder: (context, snapshot) {
+        // Loading state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        
+        // Error state
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Text('Erro: ${snapshot.error}'),
+            ),
+          );
+        }
+        
+        // No user data
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const Scaffold(
+            body: Center(
+              child: Text('Usuário não encontrado'),
+            ),
+          );
+        }
+        
+        final UserModel user = snapshot.data!;
+        
+        return Scaffold(
+          key: scaffoldKey,
       drawer: const Drawer(
         backgroundColor: Colors.white,
         child: ClientDrawerComponent(),
@@ -358,6 +388,8 @@ class ClientDashboardScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+      },
     );
   }
 }

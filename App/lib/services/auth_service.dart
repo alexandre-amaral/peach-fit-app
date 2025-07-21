@@ -13,23 +13,26 @@ class AuthService {
   UserModel? _currentUser;
   UserModel? get currentUser => _currentUser;
 
-  // Send verification code
-  Future<Map<String, dynamic>> sendCode(String email) async {
+  // Send verification code (2FA)
+  Future<void> sendCode(String email) async {
     try {
+      print('🔵 AuthService: Enviando código 2FA para $email');
       final response = await _httpService.post(
         ApiEndpoints.sendCode,
         body: {'email': email},
         requiresAuth: false,
       );
-      return response;
+      print('✅ AuthService: Código enviado com sucesso');
     } catch (e) {
+      print('❌ AuthService: Erro ao enviar código: $e');
       throw e;
     }
   }
 
-  // Verify code and login
+  // Verify code and login (2FA)
   Future<UserModel> verifyCode(String email, String code) async {
     try {
+      print('🔵 AuthService: Verificando código 2FA');
       final response = await _httpService.post(
         ApiEndpoints.verifyCode,
         body: {
@@ -39,130 +42,102 @@ class AuthService {
         requiresAuth: false,
       );
 
-      if (response['status'] == true && response['data'] != null) {
-        final user = UserModel.fromJson(response['data']);
+      print('🔵 AuthService: Resposta da verificação: $response');
+
+      // ✅ Ajustado para a resposta real da API
+      if (response['message'] == 'Login bem-sucedido.' && response['token'] != null) {
+        // Save token
+        await _httpService.saveToken(response['token']);
         
-        // Save token if present
-        if (user.token != null) {
-          await _httpService.saveToken(user.token!);
-        }
+        // Buscar dados completos do usuário
+        final userData = await _httpService.get(
+          ApiEndpoints.getUser,
+          requiresAuth: true,
+        );
+        
+        final user = UserModel.fromJson(userData);
+        user.token = response['token']; // Atribuir o token
         
         // Save user data
         await user.persistUserData();
         
         _currentUser = user;
+        print('✅ AuthService: Login bem-sucedido');
         return user;
       } else {
         throw HttpException(
           message: response['message'] ?? 'Código inválido',
-          statusCode: 400,
+          statusCode: 422,
         );
       }
     } catch (e) {
+      print('❌ AuthService: Erro na verificação: $e');
       throw e;
     }
   }
 
-  // Direct login (if API supports it)
-  Future<UserModel> login(String email, String password) async {
-    try {
-      final response = await _httpService.post(
-        ApiEndpoints.login,
-        body: {
-          'email': email,
-          'password': password,
-        },
-        requiresAuth: false,
-      );
-
-      if (response['status'] == true && response['data'] != null) {
-        final user = UserModel.fromJson(response['data']);
-        
-        // Save token if present
-        if (user.token != null) {
-          await _httpService.saveToken(user.token!);
-        }
-        
-        // Save user data
-        await user.persistUserData();
-        
-        _currentUser = user;
-        return user;
-      } else {
-        throw HttpException(
-          message: response['message'] ?? 'Credenciais inválidas',
-          statusCode: 401,
-        );
-      }
-    } catch (e) {
-      throw e;
-    }
-  }
-
-  // Get current user from API
+  // Get current user data
   Future<UserModel?> getCurrentUser() async {
     try {
-      // Check if token exists
-      if (!await _httpService.hasToken()) {
-        return null;
+      if (_currentUser != null) {
+        return _currentUser;
       }
-
-      final response = await _httpService.get(ApiEndpoints.getUser);
       
-      if (response['data'] != null) {
-        final user = UserModel.fromJson(response['data']);
-        _currentUser = user;
-        await user.persistUserData();
-        return user;
+      // Try to load from storage
+      _currentUser = await UserModel.getUserFromStorage();
+      if (_currentUser != null) {
+        return _currentUser;
+      }
+      
+      // Try to fetch from API if we have a token
+      if (await _httpService.hasValidToken()) {
+        final userData = await _httpService.get(
+          ApiEndpoints.getUser,
+          requiresAuth: true,
+        );
+        
+        _currentUser = UserModel.fromJson(userData);
+        await _currentUser!.persistUserData();
+        return _currentUser;
       }
       
       return null;
     } catch (e) {
-      // Token might be invalid, clear it
-      await logout();
+      print('❌ AuthService: Erro ao obter usuário: $e');
       return null;
     }
   }
 
-  // Auto login on app start
-  Future<UserModel?> autoLogin() async {
+  // Auto-login from stored token
+  Future<bool> autoLogin() async {
     try {
-      if (await _httpService.hasToken()) {
-        return await getCurrentUser();
-      }
-      return null;
+      final user = await getCurrentUser();
+      return user != null;
     } catch (e) {
-      return null;
-    }
-  }
-
-  // Logout
-  Future<bool> logout() async {
-    try {
-      // Try to call logout endpoint if token exists
-      if (await _httpService.hasToken()) {
-        try {
-          await _httpService.post(ApiEndpoints.logout);
-        } catch (e) {
-          // Even if logout fails, we continue with local cleanup
-        }
-      }
-
-      // Clear local data
-      await _httpService.clearToken();
-      await UserModel.clearUserData();
-      _currentUser = null;
-      
-      return true;
-    } catch (e) {
+      print('❌ AuthService: Erro no auto-login: $e');
       return false;
     }
   }
 
-  // Check if user is authenticated
-  bool get isAuthenticated => _currentUser != null;
+  // Logout
+  Future<void> logout() async {
+    try {
+      // Call logout API
+      await _httpService.post(
+        ApiEndpoints.logout,
+        body: {},
+        requiresAuth: true,
+      );
+    } catch (e) {
+      print('❌ AuthService: Erro no logout API: $e');
+    } finally {
+      // Clear local data regardless of API response
+      await _httpService.clearToken();
+      await UserModel.clearUserData();
+      _currentUser = null;
+    }
+  }
 
-  // Check user type
-  bool get isPersonalTrainer => _currentUser?.isPersonalTrainer ?? false;
-  bool get isCustomer => _currentUser?.isCustomer ?? true;
+  // Check if user is logged in
+  bool get isLoggedIn => _currentUser != null;
 } 

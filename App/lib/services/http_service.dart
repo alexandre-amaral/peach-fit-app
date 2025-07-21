@@ -119,6 +119,11 @@ class HttpService {
     final token = await getToken();
     return token != null && token.isNotEmpty;
   }
+  
+  // ✅ Método que estava faltando
+  Future<bool> hasValidToken() async {
+    return await hasToken();
+  }
 }
 
 // Custom Exception

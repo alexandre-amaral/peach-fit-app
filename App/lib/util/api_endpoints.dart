@@ -5,6 +5,7 @@ class ApiEndpoints {
   // Auth endpoints - CORRIGIDOS BASEADO NAS ROTAS REAIS
   static const String sendCode = '$baseUrl/login';
   static const String verifyCode = '$baseUrl/verify_login';
+  static const String login = '$baseUrl/login';  // ✅ ADICIONADO - estava faltando
   static const String logout = '$baseUrl/logout';
   
   // User endpoints

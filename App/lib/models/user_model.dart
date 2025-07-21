@@ -14,7 +14,7 @@ class UserModel {
   final double? weight;
   final String? localization;
   final int type; // 1 = Cliente, 2 = Personal Trainer
-  final String? token;
+  String? token; // ✅ Removido final para permitir setter
   final DateTime? emailVerifiedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -92,6 +92,7 @@ class UserModel {
     };
   }
 
+  // ✅ Getters para verificar tipo de usuário
   bool get isPersonalTrainer => type == 2;
   bool get isCustomer => type == 1;
 

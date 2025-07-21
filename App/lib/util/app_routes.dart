@@ -1,5 +1,6 @@
 class AppRoutes {
-  static const login = '/';
+  static const splash = '/';  // ✅ SplashScreen como rota inicial
+  static const login = '/login';  // ✅ Mudado de '/' para '/login'
   static const register = '/register';
   static const twofa = '/2fa';
 

@@ -33,7 +33,9 @@ class PeachApp extends StatelessWidget {
           secondary: const Color(0xFFFE9F69),
         ),
       ),
+      initialRoute: AppRoutes.splash,  // ✅ Rota inicial
       routes: {
+        AppRoutes.splash: (context) => const SplashScreen(),  // ✅ Adicionado
         AppRoutes.login: (context) => LoginScreen(),
         AppRoutes.register: (context) => const RegisterScreen(),
         AppRoutes.twofa: (context) => TwofaScreen(),
@@ -52,7 +54,6 @@ class PeachApp extends StatelessWidget {
         AppRoutes.settings: (context) => const ClientSettingsScreen(),
         AppRoutes.editAccount: (context) => ClientEditAccountScreen(),
       },
-      home: const SplashScreen(),
     );
   }
 }
@@ -78,18 +79,24 @@ class _SplashScreenState extends State<SplashScreen> {
       // Simular carregamento por pelo menos 2 segundos
       await Future.delayed(const Duration(seconds: 2));
       
-      // Tentar auto-login
-      final user = await _authService.autoLogin();
+      // Tentar auto-login - verificar se há usuário logado
+      final isLoggedIn = await _authService.autoLogin();
       
       if (mounted) {
-        if (user != null) {
-          // NAVEGAÇÃO CONDICIONAL POR TIPO DE USUÁRIO
-          if (user.isPersonalTrainer) {
-            Navigator.of(context).pushReplacementNamed(AppRoutes.homeTrainer);
-          } else if (user.isCustomer) {
-            Navigator.of(context).pushReplacementNamed(AppRoutes.homeClient);
+        if (isLoggedIn) {
+          final user = await _authService.getCurrentUser();
+          if (user != null) {
+            // NAVEGAÇÃO CONDICIONAL POR TIPO DE USUÁRIO
+            if (user.isPersonalTrainer) {
+              Navigator.of(context).pushReplacementNamed(AppRoutes.homeTrainer);
+            } else if (user.isCustomer) {
+              Navigator.of(context).pushReplacementNamed(AppRoutes.homeClient);
+            } else {
+              // Tipo desconhecido, ir para login
+              Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+            }
           } else {
-            // Tipo desconhecido, ir para login
+            // Falha ao obter dados do usuário, ir para login
             Navigator.of(context).pushReplacementNamed(AppRoutes.login);
           }
         } else {

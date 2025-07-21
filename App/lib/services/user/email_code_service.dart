@@ -1,44 +1,38 @@
 import 'package:peach_fit_app/models/notification_model.dart';
 import 'package:peach_fit_app/models/user_model.dart';
-import 'package:peach_fit_app/services/api/get_user_api_service.dart';
+import 'package:peach_fit_app/services/auth_service.dart';
 
 class EmailCodeService {
-  Future<void> putEmailCode(String code) async {
-    UserModel user = UserModel();
-
-    user.code;
-    Map<String, dynamic> response = await GetUserApiService().getUser(
-      user.email ?? '',
-      user.password ?? '',
-      code,
-    );
-
-    if (response['status'] == false) {
+  final AuthService _authService = AuthService();
+  
+  // ⚠️ DEPRECADO: Use AuthService.verifyCode() diretamente
+  Future<UserModel> putEmailCode(String email, String code) async {
+    try {
+      // Usar AuthService para verificar código
+      final user = await _authService.verifyCode(email, code);
+      return user;
+    } catch (e) {
       throw Exception(
         "Falha ao acessar o aplicativo. \nTente novamente mais tarde.",
       );
     }
-
-    List<NotificationModel> notifications =
-        (response['data']['notifications'] as List)
-            .map((json) => NotificationModel.fromJson(json))
-            .toList();
-
-    user.id = response['data']['id'];
-    user.type = response['data']['type'];
-    user.name = response['data']['name'];
-    user.email = response['data']['email'];
-    user.phone = response['data']['phone'];
-    user.avatar = response['data']['avatar'];
-    user.token = response['data']['token'];
-    user.cpf = response['data']['cpf'];
-    user.gender = response['data']['gender'];
-    user.birthDate = DateTime.parse(response['data']['birth_date']);
-    user.height = response['data']['height'];
-    user.weight = response['data']['weight'];
-    user.localization = response['data']['localization'];
-    user.notifications = notifications;
-
-    await user.persistUserData();
+  }
+  
+  // Método atualizado para verificar código com email específico
+  Future<UserModel> verifyEmailCode(String email, String code) async {
+    try {
+      return await _authService.verifyCode(email, code);
+    } catch (e) {
+      throw Exception("Código inválido ou expirado.");
+    }
+  }
+  
+  // Método para reenviar código
+  Future<void> resendCode(String email) async {
+    try {
+      await _authService.sendCode(email);
+    } catch (e) {
+      throw Exception("Falha ao reenviar código.");
+    }
   }
 }
