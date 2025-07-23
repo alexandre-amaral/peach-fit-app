@@ -32,3 +32,4 @@ App/ios/Podfile.lock
 .DS_Store
 Thumbs.db
 *.log
+Server/vendor/

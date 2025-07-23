@@ -12,6 +12,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "nfephp-org/sped-ibge": "^1.0",
+        "phpmailer/phpmailer": "^6.10",
         "srmklive/paypal": "^3.0"
     },
     "require-dev": {

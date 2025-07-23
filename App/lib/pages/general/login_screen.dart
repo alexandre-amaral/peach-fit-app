@@ -38,26 +38,32 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      print('🔵 Login: Enviando código 2FA para ${_emailController.text}');
       await _authService.sendCode(_emailController.text.trim());
       
       if (mounted) {
-        // Navegar para tela de verificação 2FA
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Código enviado com sucesso! Verifique seu email.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
         Navigator.pushNamed(
-          context, 
+          context,
           AppRoutes.twofa,
-          arguments: _emailController.text.trim(),
+          arguments: {
+            'email': _emailController.text.trim(),
+            'authService': _authService,
+          }
         );
       }
     } catch (e) {
-      print('❌ Login: Erro ao enviar código: $e');
       if (mounted) {
-        await QuickAlert.show(
-          context: context,
-          type: QuickAlertType.error,
-          title: 'Erro no Login',
-          text: e.toString().replaceFirst('Exception: ', ''),
-          confirmBtnText: 'OK',
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao enviar código: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -184,6 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
               ),
             ),
+            
           ],
         ),
       ),

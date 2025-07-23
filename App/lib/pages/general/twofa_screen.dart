@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:peach_fit_app/components/button_component.dart';
 import 'package:peach_fit_app/components/outside/outside_frame_screen.dart';
-import 'package:peach_fit_app/components/outside/pinput_component.dart';
 import 'package:peach_fit_app/util/app_routes.dart';
 import 'package:peach_fit_app/services/auth_service.dart';
-import 'package:quickalert/quickalert.dart';
 
 class TwofaScreen extends StatefulWidget {
   TwofaScreen({super.key});
@@ -14,22 +13,21 @@ class TwofaScreen extends StatefulWidget {
 }
 
 class _TwofaScreenState extends State<TwofaScreen> {
-  // ✅ CONTROLADORES E SERVIÇOS
   final TextEditingController _pinController = TextEditingController();
-  final AuthService _authService = AuthService();
-  
-  bool _isLoading = false;
-  bool _isResending = false;
+  AuthService? _authService;
   String? _email;
+  bool _isLoading = false;
+
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // ✅ RECEBER EMAIL COMO ARGUMENTO DA NAVEGAÇÃO
     final args = ModalRoute.of(context)?.settings.arguments;
-    if (args != null && args is String) {
-      _email = args;
+    if (args != null && args is Map<String, dynamic>) {
+      _email = args['email'] as String?;
+      _authService = args['authService'] as AuthService?;
     }
+    _authService ??= AuthService();
   }
 
   @override
@@ -38,27 +36,24 @@ class _TwofaScreenState extends State<TwofaScreen> {
     super.dispose();
   }
 
-  // ✅ VERIFICAR CÓDIGO 2FA
-  Future<void> _handleVerifyCode() async {
-    if (_pinController.text.trim().isEmpty) {
-      await QuickAlert.show(
-        context: context,
-        type: QuickAlertType.warning,
-        title: 'Código Obrigatório',
-        text: 'Digite o código que foi enviado para seu email.',
-        confirmBtnText: 'OK',
-      );
+  // ✅ VERIFICAR CÓDIGO 2FA (simplificado - apenas botão manual)
+  Future<void> _verifyCode() async {
+    if (_isLoading) return; // 🛡️ Evita múltiplos cliques
+    
+    final code = _pinController.text.trim();
+    
+    if (code.isEmpty) {
+      _showMessage('Por favor, insira o código', Colors.orange);
       return;
     }
 
-    if (_email == null || _email!.isEmpty) {
-      await QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        title: 'Erro',
-        text: 'Email não encontrado. Volte para a tela de login.',
-        confirmBtnText: 'OK',
-      );
+    if (code.length != 6) {
+      _showMessage('O código deve ter exatamente 6 dígitos', Colors.orange);
+      return;
+    }
+
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+      _showMessage('O código deve conter apenas números', Colors.orange);
       return;
     }
 
@@ -67,48 +62,20 @@ class _TwofaScreenState extends State<TwofaScreen> {
     });
 
     try {
-      final user = await _authService.verifyCode(
-        _email!,
-        _pinController.text.trim(),
-      );
-
+      await _authService!.verifyCode(_email!, code);
+      
       if (mounted) {
-        await QuickAlert.show(
-          context: context,
-          type: QuickAlertType.success,
-          title: 'Login Realizado',
-          text: 'Bem-vindo(a), ${user.name}!',
-          confirmBtnText: 'Continuar',
+        // 🎉 Sucesso - navegar imediatamente
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.clientDashboard,
+          (route) => false,
         );
-
-        // ✅ NAVEGAÇÃO CONDICIONAL POR TIPO DE USUÁRIO
-        if (user.isPersonalTrainer) {
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            AppRoutes.homeTrainer,
-            (route) => false,
-          );
-        } else if (user.isCustomer) {
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            AppRoutes.homeClient,
-            (route) => false,
-          );
-        } else {
-          // Tipo desconhecido - ir para onboard ou default
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            AppRoutes.onboardClient,
-            (route) => false,
-          );
-        }
       }
     } catch (e) {
       if (mounted) {
-        await QuickAlert.show(
-          context: context,
-          type: QuickAlertType.error,
-          title: 'Código Inválido',
-          text: e.toString().replaceFirst('Exception: ', ''),
-          confirmBtnText: 'OK',
-        );
+        _showMessage('Código inválido ou expirado. Solicite um novo código.', Colors.red);
+        _pinController.clear();
       }
     } finally {
       if (mounted) {
@@ -122,52 +89,42 @@ class _TwofaScreenState extends State<TwofaScreen> {
   // ✅ REENVIAR CÓDIGO
   Future<void> _handleResendCode() async {
     if (_email == null || _email!.isEmpty) {
-      await QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        title: 'Erro',
-        text: 'Email não encontrado. Volte para a tela de login.',
-        confirmBtnText: 'OK',
-      );
+      _showMessage('Email não encontrado. Volte para a tela de login.', Colors.red);
       return;
     }
 
     setState(() {
-      _isResending = true;
+      _isLoading = true;
     });
 
     try {
-      await _authService.sendCode(_email!);
+      await _authService!.sendCode(_email!);
       
       if (mounted) {
-        await QuickAlert.show(
-          context: context,
-          type: QuickAlertType.success,
-          title: 'Código Reenviado',
-          text: 'Um novo código foi enviado para seu email.',
-          confirmBtnText: 'OK',
-        );
-        
-        // Limpar o campo do PIN
+        _showMessage('Novo código enviado para seu email', Colors.green);
         _pinController.clear();
       }
     } catch (e) {
       if (mounted) {
-        await QuickAlert.show(
-          context: context,
-          type: QuickAlertType.error,
-          title: 'Erro ao Reenviar',
-          text: e.toString().replaceFirst('Exception: ', ''),
-          confirmBtnText: 'OK',
-        );
+        _showMessage('Erro ao reenviar código. Tente novamente.', Colors.red);
       }
     } finally {
       if (mounted) {
         setState(() {
-          _isResending = false;
+          _isLoading = false;
         });
       }
     }
+  }
+
+  void _showMessage(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -177,59 +134,56 @@ class _TwofaScreenState extends State<TwofaScreen> {
         width: double.infinity,
         child: Column(
           children: [
-            const SizedBox(
-              width: double.infinity,
-              child: Text(
-                "Verificação de Email",
-                style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+            // ✅ TÍTULO
+            const Text(
+              'Verificação de Email',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
+              textAlign: TextAlign.center,
             ),
-            Container(
-              margin: const EdgeInsets.only(bottom: 20, top: 10),
-              width: double.infinity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Digite o código que foi enviado para:',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _email ?? 'seu email',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Text(
-                      'Alterar email',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-                ],
+            
+            const SizedBox(height: 15),
+            
+            // ✅ DESCRIÇÃO
+            Text(
+              _email != null 
+                  ? 'Digite o código de 6 dígitos enviado para:\n$_email' 
+                  : 'Digite o código de 6 dígitos enviado para seu email',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+                height: 1.4,
               ),
+              textAlign: TextAlign.center,
             ),
+            
+            const SizedBox(height: 40),
+            
+            // ✅ CAMPO DE CÓDIGO MELHORADO
             Container(
-              margin: const EdgeInsets.symmetric(vertical: 30),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  // ✅ CAMPO PIN COM CONTROLLER
+                  // Campo para inserir código
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        width: 2,
+                      ),
+                      color: Colors.white,
+                    ),
                     child: TextFormField(
                       controller: _pinController,
                       decoration: const InputDecoration(
                         labelText: 'Código de 6 dígitos',
-                        border: OutlineInputBorder(),
+                        hintText: '000000',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.all(20),
                         counterText: '',
                       ),
                       textAlign: TextAlign.center,
@@ -239,73 +193,74 @@ class _TwofaScreenState extends State<TwofaScreen> {
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 8,
+                        color: Colors.black87,
                       ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (value) {
+                        // 🔧 APENAS remove foco quando completo - SEM verificação automática
+                        if (value.length == 6) {
+                          FocusScope.of(context).unfocus();
+                        }
+                      },
                     ),
                   ),
                   
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 25),
                   
-                  // ✅ BOTÃO REENVIAR FUNCIONAL
-                  TextButton(
-                    onPressed: _isResending ? null : _handleResendCode,
-                    child: _isResending
-                        ? const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                  // Botão verificar
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _verifyCode,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4CAF50),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
                               ),
-                              SizedBox(width: 8),
-                              Text('Reenviando...'),
-                            ],
-                          )
-                        : const Text(
-                            'Reenviar Email',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                            )
+                          : const Text(
+                              'Verificar Código',
+                              style: TextStyle(
+                                fontSize: 16, 
+                                fontWeight: FontWeight.w600
+                              ),
                             ),
-                          ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Botão reenviar código  
+                  TextButton(
+                    onPressed: _isLoading ? null : _handleResendCode,
+                    child: const Text(
+                      'Não recebeu o código? Reenviar',
+                      style: TextStyle(
+                        color: Colors.grey, 
+                        fontSize: 14,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
             
-            // ✅ BOTÃO VERIFICAR FUNCIONAL
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleVerifyCode,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'Verificar',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-            ),
-            
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
             
             // ✅ BOTÃO VOLTAR
             TextButton(

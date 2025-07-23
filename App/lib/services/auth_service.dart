@@ -16,15 +16,16 @@ class AuthService {
   // Send verification code (2FA)
   Future<void> sendCode(String email) async {
     try {
-      print('🔵 AuthService: Enviando código 2FA para $email');
-      final response = await _httpService.post(
+      print('Sending 2FA code to $email');
+      await _httpService.post(
         ApiEndpoints.sendCode,
         body: {'email': email},
         requiresAuth: false,
       );
-      print('✅ AuthService: Código enviado com sucesso');
+      
+      print('2FA code sent successfully');
     } catch (e) {
-      print('❌ AuthService: Erro ao enviar código: $e');
+      print('Error sending 2FA code: $e');
       throw e;
     }
   }

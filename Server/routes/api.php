@@ -33,12 +33,28 @@ use App\Http\Controllers\App\Personal\EditPersonalCredentialsController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
-})->middleware('auth:sanctum');
+})->middleware('auth.apitoken');
 
 
 //Rotas de login e cadastro
  Route::post('/login', [LoginAppController::class, 'sendCode'])->name('login.sendCode');
  Route::post('/verify_login', [LoginAppController::class, 'verifyCode'])->name('login.verifyCode');
+ Route::post('/logout', [LogoutAppController::class, 'logout'])->name('logout')->middleware('auth.apitoken');
+ 
+ // Rota do usuário autenticado
+ Route::get('/users/me', function (Request $request) {
+    return $request->user();
+ })->middleware('auth.apitoken');
+
+ // Rotas de estados e cidades
+ Route::get('/states', function () {
+    return \App\Models\IbgeState::orderBy('name')->get();
+ });
+ Route::get('/cities', function (Request $request) {
+    $stateId = $request->query('state_id');
+    return \App\Models\IbgeCity::where('state_id', $stateId)->orderBy('name')->get();
+ });
+ 
  Route::prefix('customers')->name('customersApp.')->group(function () {
     Route::post('/register', [RegisterCustomerAppController::class, 'registerCustomer'])->name('registerCustomer');
  });

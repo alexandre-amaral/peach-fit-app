@@ -26,7 +26,7 @@
                         <td style="color: #e0e0e0; font-size: 16px; line-height: 1.6;">
                             @yield('emailContent')
 
-                            <p>Caso você não tenha solicitado esta ação ou tenha alguma dúvida, por favor, entre em contato conosco imediatamente através do e-mail <a href="mailto:{{ $admin['email'] }}">{{ $admin['email'] }}</a> ou pelo telefone <strong>{{ $admin['tel'] }}</strong>.</p>
+                            <p>Caso você não tenha solicitado esta ação ou tenha alguma dúvida, por favor, entre em contato conosco através do e-mail <a href="mailto:support@peachfit.com">support@peachfit.com</a>.</p>
 
                             <p>Agradecemos a sua confiança em nossos serviços!</p>
                         </td>

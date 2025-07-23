@@ -29,15 +29,17 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
+        // 🔧 Para desenvolvimento, usar valores padrão em vez de consultar BD
+        if (config('app.env') === 'local' || config('database.default') === 'sqlite') {
+            View::share('admin', ['email' => 'peach@srv846765.hstgr.cloud', 'tel' => '']);
+            TrainingSession::observe(TrainingSessionObserver::class);
+            return;
+        }
 
-        $cache = Cache::class;
-
-        if (is_null($cache::get(AdminInfoUtil::CACHE_NAME))) {
+        if (is_null(Cache::get(AdminInfoUtil::CACHE_NAME))) {
 
             $emailInfo = AdminInfo::where('id', AdminInfoUtil::EMAIL)->first();
             $telInfo = AdminInfo::where('id', AdminInfoUtil::TEL)->first();
-
-
 
             $adminInfo = [
                 'email' => '',
@@ -52,12 +54,12 @@ class AppServiceProvider extends ServiceProvider
                 $adminInfo['tel'] = $telInfo->info;
             }
 
-            $cache::rememberForever(AdminInfoUtil::CACHE_NAME, function () use ($adminInfo) {
+            Cache::rememberForever(AdminInfoUtil::CACHE_NAME, function () use ($adminInfo) {
                 return $adminInfo;
             });
         }
 
-        View::share('admin', $cache::get(AdminInfoUtil::CACHE_NAME));
+        View::share('admin', Cache::get(AdminInfoUtil::CACHE_NAME) ?? []);
         TrainingSession::observe(TrainingSessionObserver::class);
     }
 }

@@ -6,7 +6,11 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.CAMERA"/>
 
-    <application android:label="peach" android:name="${applicationName}" android:icon="@mipmap/ic_launcher">
+    <application 
+        android:label="peach" 
+        android:name="${applicationName}" 
+        android:icon="@mipmap/ic_launcher"
+        android:networkSecurityConfig="@xml/network_security_config">
 
         <!-- Chave da API do Google Maps -->
         <meta-data android:name="com.google.android.geo.API_KEY" android:value="AIzaSyAeXaLjg6JEjq70z3a1tZHLNJmk1i7DulY"/>

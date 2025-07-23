@@ -12,6 +12,7 @@ import 'package:peach_fit_app/pages/general/register_screen.dart';
 import 'package:peach_fit_app/pages/general/twofa_screen.dart';
 import 'package:peach_fit_app/pages/trainer/home_trainer_screen.dart';
 import 'package:peach_fit_app/util/app_routes.dart';
+import 'package:peach_fit_app/util/api_endpoints.dart'; // ✅ Importado para debug
 import 'package:peach_fit_app/services/auth_service.dart';
 
 void main() {
